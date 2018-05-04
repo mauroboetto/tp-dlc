@@ -7,6 +7,8 @@ package server;
 
 import parsers.WordReader;
 import document_indexing.VectorialIndexingManager;
+import document_indexing.SearchResult;
+
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -43,12 +45,11 @@ public class SearchResults extends HttpServlet {
         
         VectorialIndexingManager im = new VectorialIndexingManager();
         
-        List<String> results;
-        String txt = request.getParameter("texto_a_buscar");
+        Iterable<SearchResult> results;
+        String txt = request.getParameter("search_words");
         if (txt != null && !txt.equals(""))
         {
             ArrayList<String> words = WordReader.parseLine(txt);
-            words.add("lalalala");
             results = im.getResults(words);
             // TODO: no borrar el input
             
@@ -56,7 +57,7 @@ public class SearchResults extends HttpServlet {
         else
         {
             results = new ArrayList();
-            results.add("No buscaste nada, boludo.");
+            //results.add("No buscaste nada, boludo.");
         }
         
           

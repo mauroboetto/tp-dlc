@@ -16,7 +16,7 @@
         <div>
             <h1><img src="img/logo.png" alt="Gugle"></h1>
             <form action="." method="post">
-                <input type="text" name="texto_a_buscar" autofocus>
+                <input type="text" name="search_words" autofocus>
                 <input type="submit" name="btn_buscar" value="Buscar">
             </form>
         </div>
