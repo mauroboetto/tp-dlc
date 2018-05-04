@@ -14,19 +14,28 @@ import java.io.RandomAccessFile;
  */
 class VocabularyEntry {
     private int quantity;
-    private int max_tf;
+    private int maxTf;
     private long offset;
     private int postingBlockAmount;
     
     
     VocabularyEntry(PostingEntry posting, String postingFilename) {
         this.quantity = posting.getCount();
-        this.max_tf = posting.getMaxTf();
+        this.maxTf = posting.getMaxTf();
         /*this.postingBlockAmount = ;
         
         try (RandomAccessFile raf = new RandomAccessFile()) {
             
         }*/
+    }
+    
+    
+    public int getMaxTf() {
+        return maxTf;
+    }
+    
+    public int count() {
+        return quantity;
     }
     
 }

@@ -18,7 +18,7 @@ public class IndexGenerator {
     
     
     public static void main(String[] args) {
-        VectorialIndexingManager im = new VectorialIndexingManager(
+        /*VectorialIndexingManager im = new VectorialIndexingManager(
                                         "test_voc.bin", "test_post.bin");
         
         File dir = new File(documentsDirectory);
@@ -36,6 +36,6 @@ public class IndexGenerator {
             {
                 System.out.println("Error");
             }
-        }
+        }*/
     }
 }
