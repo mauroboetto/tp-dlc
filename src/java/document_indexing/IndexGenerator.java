@@ -14,28 +14,26 @@ import java.io.FileNotFoundException;
  * @author mauro
  */
 public class IndexGenerator {
-    public final static String documentsDirectory = "archivos/";
+    public final static String documentsDirectory = "web/documents";
     
     
     public static void main(String[] args) {
-        /*VectorialIndexingManager im = new VectorialIndexingManager(
-                                        "test_voc.bin", "test_post.bin");
+        VectorialIndexingManager im = new VectorialIndexingManager(
+                                        "test_fns.bin", "test_voc.bin", "test_post.bin");
         
         File dir = new File(documentsDirectory);
         File[] files = dir.listFiles();
-        String filename;
-        for (int i = 0; i < files.length; i++)
+        int amount = 100; //files.length;
+        String filenames[] = new String[amount];
+        for (int i = 0; i < amount; i++)
         {
-            filename = files[i].getName();
-            System.out.println(i + "] Parsing \"" + filename + "\"");
-            try 
-            {
-                im.parseFile(documentsDirectory + filename);
-            }
-            catch (FileNotFoundException ex) 
-            {
-                System.out.println("Error");
-            }
-        }*/
+            filenames[i] = files[i].getAbsolutePath();
+        }
+        try {
+            im.parseFiles(filenames);    
+        } catch (FileNotFoundException ex) {
+            System.out.println("Error: " + ex.getMessage());
+        }
+        
     }
 }

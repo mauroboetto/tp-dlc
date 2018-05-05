@@ -6,6 +6,7 @@
 
 package document_indexing;
 
+import java.io.IOException;
 import java.io.RandomAccessFile;
 
 /**
@@ -17,16 +18,22 @@ class VocabularyEntry {
     private int maxTf;
     private long offset;
     private int postingBlockAmount;
+    private String nextBlockWord;
     
     
-    VocabularyEntry(PostingEntry posting, String postingFilename) {
+    VocabularyEntry(PostingEntry posting, long offset) {
         this.quantity = posting.getCount();
         this.maxTf = posting.getMaxTf();
-        /*this.postingBlockAmount = ;
-        
-        try (RandomAccessFile raf = new RandomAccessFile()) {
-            
-        }*/
+        this.postingBlockAmount = posting.getPostingBlockAmount();
+        this.offset = offset;
+    }
+    
+    public void setOffset(int offset) {
+        this.offset = offset;
+    }
+    
+    public long getOffset() {
+        return offset;
     }
     
     
@@ -34,8 +41,33 @@ class VocabularyEntry {
         return maxTf;
     }
     
+    public int getPostingBlockAmount() {
+        return postingBlockAmount;
+    }
+    
+    public void setPostingBlockAmount(int postingBlockAmount) {
+        this.postingBlockAmount = postingBlockAmount;
+    }
+    
+    public String getNextBlockWord() {
+        return nextBlockWord;
+    }
+    
     public int count() {
         return quantity;
+    }
+
+
+    public PostingEntry updatePosting(String postingFilename, short[] documentsIds, int[] documentsTfs, int count) {
+        PostingEntry posting;
+        // TODO load posting
+        posting = new PostingEntry();
+        
+        posting.update(documentsIds, documentsTfs, count);
+        this.quantity = posting.getCount();
+        this.maxTf = posting.getMaxTf();
+        
+        return posting;
     }
     
 }

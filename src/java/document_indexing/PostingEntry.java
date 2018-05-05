@@ -7,7 +7,7 @@ package document_indexing;
 
 import utils.ArrayUtils;
 import utils.ArrayCastException;
-
+import java.lang.Math;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -60,9 +60,13 @@ class PostingEntry {
 
     }
     
+    public void update(short[] documentsIds, int[] documentsTfs, int count) {
+        // TODO
+    }
+    
     
     private void sort() {
-        
+        // TODO
     }
     
     public int getCount() {
@@ -74,6 +78,6 @@ class PostingEntry {
     }
     
     public int getPostingBlockAmount() {
-        return 0; // FIXME
+        return (int) Math.ceil(((double) count) / ENTRIES_PER_BLOCK);
     }
 }
