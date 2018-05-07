@@ -50,7 +50,9 @@ public class VectorialIndexingManager {
         searchTotals = new TSB_OAHashtable();
         
         ArrayList<SearchResult> ret = new ArrayList();
-        ret.add(new SearchResult("Palabras"));
+        ret.add(new SearchResult("link1","name1"));
+        ret.add(new SearchResult("link2","name2"));
+        ret.add(new SearchResult("link3",words.toString()));
         for (String word: words) {
             processWordTfs(word);
             updateSearchTotals();
@@ -58,7 +60,7 @@ public class VectorialIndexingManager {
         
         for (Map.Entry<Integer, Double> entry: searchTotals.entrySet()) {
             // TODO procesar entradas y crear el resultado
-            ret.add(new SearchResult("arreglame"));
+            //ret.add(new SearchResult("arreglame"));
         }
             
         
@@ -87,6 +89,22 @@ public class VectorialIndexingManager {
     private void updateSearchTotals() {
         // TODO
         // Actualiza searchTotals con los valores de la ultima palabra
+    }
+
+    public void parseFile(File file) {
+        try
+        {
+            vocabularyPostingManager.parseFile(file);
+            
+        }
+        catch (FileNotFoundException ex) 
+        {
+            System.out.println("Error");
+        }
+    }
+
+    public void parseFiles(File[] files) throws FileNotFoundException {
+        vocabularyPostingManager.parseFiles(files);
     }
     
 }

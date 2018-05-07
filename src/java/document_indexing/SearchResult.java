@@ -10,14 +10,16 @@ package document_indexing;
  * @author mauro
  */
 public class SearchResult {
-    private String algo;
+    private String linkFile;
+    private String nameFile;
     
-    public SearchResult(String aaa) {
-        algo = aaa;
+    public SearchResult(String link, String name) {
+        linkFile = link;
+        nameFile = name;
     }
     
     @Override
     public String toString() {
-        return algo;
+        return "<a href= \"" + linkFile + "\">" + nameFile + "</a>";
     }
 }

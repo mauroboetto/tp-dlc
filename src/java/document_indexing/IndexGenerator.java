@@ -17,25 +17,15 @@ public class IndexGenerator {
     public final static String documentsDirectory = "archivos/";
     
     
-    public static void main(String[] args) {
-        /*VectorialIndexingManager im = new VectorialIndexingManager(
-                                        "test_voc.bin", "test_post.bin");
+    public static void main(String[] args) throws FileNotFoundException {
+        VectorialIndexingManager im = new VectorialIndexingManager("test_indexes.bin","test_voc.bin", "test_post.bin");
         
         File dir = new File(documentsDirectory);
         File[] files = dir.listFiles();
-        String filename;
-        for (int i = 0; i < files.length; i++)
-        {
-            filename = files[i].getName();
-            System.out.println(i + "] Parsing \"" + filename + "\"");
-            try 
-            {
-                im.parseFile(documentsDirectory + filename);
-            }
-            catch (FileNotFoundException ex) 
-            {
-                System.out.println("Error");
-            }
-        }*/
+        
+        im.parseFiles(files);
+        
+        
+        
     }
 }

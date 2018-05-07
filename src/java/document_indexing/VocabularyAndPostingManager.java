@@ -49,7 +49,7 @@ public class VocabularyAndPostingManager {
         
     }
     
-    public void parseFiles(String[] filenames) throws FileNotFoundException {
+    public void parseFiles(File[] files) throws FileNotFoundException {
         final int PROCESS_AMOUNT = 10;
         int i, count;
         
@@ -57,10 +57,10 @@ public class VocabularyAndPostingManager {
         short[] documentsIds = new short[PROCESS_AMOUNT];
         WordCounter wc;
         i = 0;
-        while (i < filenames.length) {
-            for (count = 0; count < PROCESS_AMOUNT && i < filenames.length; count++, i++) {
+        while (i < files.length) {
+            for (count = 0; count < PROCESS_AMOUNT && i < files.length; count++, i++) {
                 wc = new WordCounter();
-                wc.loadFromFile(filenames[i]);
+                wc.loadFromFile(files[i].getName());
                 maps[count] = wc.getMap();
             }
             processMaps(documentsIds, maps, count);
@@ -95,9 +95,11 @@ public class VocabularyAndPostingManager {
         
     }
     
-    public void parseFile(String filename) throws FileNotFoundException {
+    public void parseFile(File file) throws FileNotFoundException {
         WordCounter wc = new WordCounter();
-        wc.loadFromFile(filename);
+        wc.loadFromFile(file.getName());
+        //processMaps(documentsIds, wc.getMap(), count);
+        
         
         //return (TSB_OAHashtable<String, Integer>) wc.getMap();
     }
