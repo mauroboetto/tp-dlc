@@ -4,6 +4,7 @@
  * and open the template in the editor.
  */
 package document_indexing;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Map;
@@ -75,25 +76,8 @@ public class VectorialIndexingManager {
         // TODO
         // Actualiza searchTotals con los valores de la ultima palabra
     }
-
-    public void parseFile(File file) {
-        try
-        {
-            vocabularyPostingManager.parseFile(file);
-            
-        }
-        catch (FileNotFoundException ex) 
-        {
-            System.out.println("Error");
-        }
-    }
-
+    
     public void parseFiles(File[] files) throws FileNotFoundException {
         vocabularyPostingManager.parseFiles(files);
-    }
-    
-    
-    public void parseFiles(String[] filenames) throws FileNotFoundException {
-        vocabularyPostingManager.parseFiles(filenames);
     }
 }

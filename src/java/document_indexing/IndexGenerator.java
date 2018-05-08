@@ -23,13 +23,15 @@ public class IndexGenerator {
         File dir = new File(documentsDirectory);
         File[] files = dir.listFiles();
         int amount = 1; //files.length;
-        String filenames[] = new String[amount];
-        for (int i = 0; i < amount; i++)
-        {
-            filenames[i] = files[i].getAbsolutePath();
-        }
+        
+        
         try {
-            im.parseFiles(filenames);    
+            if (amount != files.length) {
+                File[] files2 = new File[amount];
+                System.arraycopy(files, 0, files2, 0, amount);
+                files = files2;
+            }
+            im.parseFiles(files);    
         } catch (FileNotFoundException ex) {
             System.out.println("Error: " + ex.getMessage());
         }

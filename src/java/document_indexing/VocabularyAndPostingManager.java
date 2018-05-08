@@ -101,7 +101,7 @@ public class VocabularyAndPostingManager {
         // TODO
     }
     
-    public void parseFiles(String[] filenames) throws FileNotFoundException {
+    public void parseFiles(File[] files) throws FileNotFoundException {
         final int PROCESS_AMOUNT = 20;
         int i, count;
         
@@ -110,16 +110,14 @@ public class VocabularyAndPostingManager {
         i = 0;
 
         while (i < files.length) {
-            for (count = 0; count < PROCESS_AMOUNT && i < files.leng
-        
-        while (i < filenames.length) {
             int initial_index = this.filenames.size();
-            for (count = 0; count < PROCESS_AMOUNT && i < filenames.length; count++, i++) {
-                LOGGER.log(Level.INFO, "Parsing {0}", filenames[i]);
+            for (count = 0; count < PROCESS_AMOUNT && i < files.length; count++, i++) {
+                String fn = files[i].getName();
+                LOGGER.log(Level.INFO, "Parsing {0}", fn);
                 wc = new WordCounter();
-                wc.loadFromFile(files[i].getName());
+                wc.loadFromFile(files[i].getAbsolutePath());
                 maps[count] = wc.getMap();
-                this.filenames.add(filenames[i]);
+                this.filenames.add(fn);
             }
             processMaps(maps, count, initial_index);
         }
