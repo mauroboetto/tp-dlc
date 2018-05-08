@@ -15,8 +15,7 @@ import java.io.FileNotFoundException;
  */
 public class IndexGenerator {
     public final static String documentsDirectory = "web/documents";
-    
-    
+
     public static void main(String[] args) {
         VectorialIndexingManager im = new VectorialIndexingManager(
                                         "test_fns.bin", "test_voc.bin", "test_post.bin");

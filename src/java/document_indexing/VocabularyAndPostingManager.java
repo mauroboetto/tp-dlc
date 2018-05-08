@@ -108,13 +108,16 @@ public class VocabularyAndPostingManager {
         Map<String, Integer>[] maps = new Map[PROCESS_AMOUNT];
         WordCounter wc;
         i = 0;
+
+        while (i < files.length) {
+            for (count = 0; count < PROCESS_AMOUNT && i < files.leng
         
         while (i < filenames.length) {
             int initial_index = this.filenames.size();
             for (count = 0; count < PROCESS_AMOUNT && i < filenames.length; count++, i++) {
                 LOGGER.log(Level.INFO, "Parsing {0}", filenames[i]);
                 wc = new WordCounter();
-                wc.loadFromFile(filenames[i]);
+                wc.loadFromFile(files[i].getName());
                 maps[count] = wc.getMap();
                 this.filenames.add(filenames[i]);
             }

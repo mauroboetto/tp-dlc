@@ -10,17 +10,18 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <link href="css/custom.css" rel="stylesheet" type="text/css" >
         <title>Gugle</title>
     </head>
     <body>
-        <div>
-            <h1><img src="img/logo.png" alt="Gugle"></h1>
+        <div class="search">
+            <h1><img src="img/logo.png" alt="Gugle" class="lineBlock"></h1>
             <form action="." method="post">
-                <input type="text" name="search_words" autofocus>
-                <input type="submit" name="btn_buscar" value="Buscar">
+                <input type="text" name="search_words" class="lineBlock" autofocus>
+                <input type="submit" name="btn_buscar" class="lineBlock" value="Buscar">
             </form>
         </div>
-        <div>
+        <div class="result">
             <p>
                 <c:forEach items="${results}" var="result">
                         ${result}<br>
