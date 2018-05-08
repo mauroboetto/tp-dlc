@@ -23,7 +23,7 @@ public class IndexGenerator {
         
         File dir = new File(documentsDirectory);
         File[] files = dir.listFiles();
-        int amount = 100; //files.length;
+        int amount = 1; //files.length;
         String filenames[] = new String[amount];
         for (int i = 0; i < amount; i++)
         {

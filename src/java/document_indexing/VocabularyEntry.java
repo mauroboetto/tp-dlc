@@ -26,16 +26,24 @@ class VocabularyEntry {
         this.maxTf = posting.getMaxTf();
         this.postingBlockAmount = posting.getPostingBlockAmount();
         this.offset = offset;
+        this.nextBlockWord = null;
     }
     
     public void setOffset(int offset) {
         this.offset = offset;
     }
     
+    public void setNextBlockWord(String word) {
+        this.nextBlockWord = word;
+    }
+    
+    public String getNextBlockWord() {
+        return nextBlockWord;
+    }
+    
     public long getOffset() {
         return offset;
     }
-    
     
     public int getMaxTf() {
         return maxTf;
@@ -49,19 +57,22 @@ class VocabularyEntry {
         this.postingBlockAmount = postingBlockAmount;
     }
     
-    public String getNextBlockWord() {
-        return nextBlockWord;
-    }
-    
     public int count() {
         return quantity;
     }
 
 
+    public PostingEntry getPosting(String postingFilename) {
+        try {
+            return new PostingEntry(postingFilename, offset, quantity, postingBlockAmount);
+        } catch (IOException ex) {
+            System.out.println("FIXME: " + ex.getMessage());
+            return new PostingEntry();
+        }
+    }
+    
     public PostingEntry updatePosting(String postingFilename, short[] documentsIds, int[] documentsTfs, int count) {
-        PostingEntry posting;
-        // TODO load posting
-        posting = new PostingEntry();
+        PostingEntry posting = getPosting(postingFilename);
         
         posting.update(documentsIds, documentsTfs, count);
         this.quantity = posting.getCount();
