@@ -4,45 +4,30 @@
  * and open the template in the editor.
  */
 package document_indexing;
-import java.io.File;
-import java.io.IOException;
 import java.io.FileNotFoundException;
-import java.io.FileInputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Map;
 import utils.TSB_OAHashtable;
-import parsers.WordCounter;
 
-import java.util.logging.Logger;
 
 /**
  *
  * @author mauro
  */
 public class VectorialIndexingManager {
-    private final static Logger LOGGER = Logger.getLogger(VectorialIndexingManager.class.getName());
-    
-    public final static String DOCUMENTS_FILENAME = "document_indexes.bin";
-    public final static String VOCABULARY_FILENAME = "vocabulary.bin";
-    public final static String POSTING_FILENAME = "posting.bin";
-    
-    private final String documentIndexesFilename;
     private final VocabularyAndPostingManager vocabularyPostingManager;
     private Map<Integer, Double> searchTotals;
     private Map<Integer, Double> wordTfs;
     private double acumTfs;
     
     public VectorialIndexingManager() {
-        this(DOCUMENTS_FILENAME, VOCABULARY_FILENAME, POSTING_FILENAME);
+        this.vocabularyPostingManager = new VocabularyAndPostingManager();
     }
     
     public VectorialIndexingManager(String documentIndexesFilename, 
             String vocabularyFilename, String postingFilename) {
-        this.vocabularyPostingManager = new VocabularyAndPostingManager(vocabularyFilename, postingFilename);
-        this.documentIndexesFilename = documentIndexesFilename;
-        
+        this.vocabularyPostingManager = new VocabularyAndPostingManager(
+                documentIndexesFilename, vocabularyFilename, postingFilename);
     }
     
     
@@ -107,4 +92,8 @@ public class VectorialIndexingManager {
         vocabularyPostingManager.parseFiles(files);
     }
     
+    
+    public void parseFiles(String[] filenames) throws FileNotFoundException {
+        vocabularyPostingManager.parseFiles(filenames);
+    }
 }

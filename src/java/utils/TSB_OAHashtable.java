@@ -500,6 +500,7 @@ public class TSB_OAHashtable<K, V> implements Map<K, V>, Cloneable, Serializable
                         return TSB_OAHashtable.this.entries[i];
                     }
                 }
+                System.out.println(seenEntries + " / " + TSB_OAHashtable.this.size());
                 throw new NoSuchElementException("next(): no existe el elemento pedido...");
             }
 
@@ -511,6 +512,7 @@ public class TSB_OAHashtable<K, V> implements Map<K, V>, Cloneable, Serializable
                 TSB_OAHashtable.this.removeByIndex(index);
                 nextOk = false;
                 expectedModCount++;
+                seenEntries--;
             }
         }
 
