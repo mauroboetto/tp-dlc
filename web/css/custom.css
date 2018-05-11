@@ -10,13 +10,16 @@ and open the template in the editor.
 
 .search{
     display: block;
-    padding: 10px;
-    margin: 10px;
     text-align: center;
 }
 
 .result{
     display: block;
+}
+
+.results {
+    display: block;
+    padding: 20px;
 }
 
 .lineBlock{

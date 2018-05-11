@@ -11,14 +11,11 @@ import document_indexing.SearchResult;
 
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.Enumeration;
+import java.util.HashSet;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -43,26 +40,26 @@ public class SearchResults extends HttpServlet {
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
         
-        VectorialIndexingManager im = new VectorialIndexingManager();
+        //VectorialIndexingManager im = new VectorialIndexingManager();
+        VectorialIndexingManager im = new VectorialIndexingManager(
+                "/home/mauro/datos/utn/dlc/DLC-Buscador/web/test_fns.bin", 
+                "/home/mauro/datos/utn/dlc/DLC-Buscador/web/test_voc.bin", 
+                "/home/mauro/datos/utn/dlc/DLC-Buscador/web/test_post.bin");
         
         Iterable<SearchResult> results;
         String txt = request.getParameter("search_words");
-        if (txt != null && !txt.equals(""))
-        {
-            ArrayList<String> words = WordReader.parseLine(txt);
+        if (txt != null && !txt.trim().isEmpty()) {
+            HashSet<String> words = new HashSet(WordReader.parseLine(txt));
             results = im.getResults(words);
-            // TODO: no borrar el input
             
-        }
-        else
-        {
-            results = new ArrayList();
-            //results.add("No buscaste nada, boludo.");
+        } else {
+            results = null;
         }
         
           
         
         request.setAttribute("results", results);
+        request.setAttribute("search_words", txt);
         ServletContext app = this.getServletContext();
         RequestDispatcher disp = app.getRequestDispatcher("/results.jsp");
         disp.forward(request, response);

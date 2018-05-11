@@ -6,9 +6,13 @@
 package document_indexing;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
-import utils.TSB_OAHashtable;
+import java.util.Iterator;
+import java.util.HashSet;
+import java.util.TreeSet;
+import java.util.SortedSet;
+import java.util.Set;
 
 
 /**
@@ -17,9 +21,10 @@ import utils.TSB_OAHashtable;
  */
 public class VectorialIndexingManager {
     private final VocabularyAndPostingManager vocabularyPostingManager;
-    private Map<Integer, Double> searchTotals;
-    private Map<Integer, Double> wordTfs;
-    private double acumTfs;
+    
+    private Map<Short, SearchResult> results;
+    private SortedSet<SearchResult> sortedResults;
+    private Set<Short> currentWordDocuments;
     
     public VectorialIndexingManager() {
         this.vocabularyPostingManager = new VocabularyAndPostingManager();
@@ -32,49 +37,70 @@ public class VectorialIndexingManager {
     }
     
     
-    public Iterable<SearchResult> getResults(Iterable<String> words) {
-        searchTotals = new TSB_OAHashtable();
+    public Iterable<SearchResult> getResults(Set<String> words) {
+        results = new HashMap();
+        currentWordDocuments = new HashSet();
+        sortedResults = new TreeSet();
         
-        ArrayList<SearchResult> ret = new ArrayList();
-        ret.add(new SearchResult("link1","name1"));
-        ret.add(new SearchResult("link2","name2"));
-        ret.add(new SearchResult("link3",words.toString()));
+        
         for (String word: words) {
             processWordTfs(word);
-            updateSearchTotals();
         }
         
-        for (Map.Entry<Integer, Double> entry: searchTotals.entrySet()) {
-            // TODO procesar entradas y crear el resultado
-            //ret.add(new SearchResult("arreglame"));
-        }
-            
+        Iterable<SearchResult> ret = sortedResults;
         
-        
-        
-        wordTfs = null;
-        searchTotals = null;
+        results = null;
+        currentWordDocuments = null;
+        sortedResults = null;
         return ret;
     }
     
     private void processWordTfs(String word) {
-        // Matriz de [ID_Documento][TF]
-        int tfsXDocument[][] = vocabularyPostingManager.getDocumentsTfs(word);
+        PostingEntries posting = vocabularyPostingManager.getDocumentsPosting(word);
+        if (posting == null) {
+            return;
+        }
         
-        int tfMax = vocabularyPostingManager.getMaxTf(word);
+        //int tfMax = vocabularyPostingManager.getMaxTf(word);
         int totalDocuments = vocabularyPostingManager.getDocumentCount();
         int containedIn = vocabularyPostingManager.getDocumentsContaining(word);
-        
-        acumTfs = 0;
-        wordTfs = new TSB_OAHashtable();
+        double logFactor = Math.log(((double) totalDocuments) / containedIn);
         
         
-        // TODO: procesa los valores de una palabra
-    }
-    
-    private void updateSearchTotals() {
-        // TODO
-        // Actualiza searchTotals con los valores de la ultima palabra
+        double vectorModule = 0;
+        for (PostingEntries.PostingSingleEntry entry: posting) {
+            short id = entry.documentId;
+            int tf = entry.documentTf;
+            double semiAdjustedTf = tf * logFactor;
+            vectorModule += Math.pow(semiAdjustedTf, 2);
+            
+            if (!currentWordDocuments.contains(id)) {
+                currentWordDocuments.add(id);
+            }
+            
+            SearchResult result = results.get(id);
+            if (result == null) {
+                result = new SearchResult(vocabularyPostingManager.getDocumentName(id));
+                results.put(id, result);
+            }
+            result.addParameterValues(word, tf, semiAdjustedTf);
+            
+        }
+        
+        vectorModule = Math.sqrt(vectorModule);
+        Iterator<Short> it = currentWordDocuments.iterator();
+        while (it.hasNext()) {
+            short id = it.next();
+            it.remove();
+            SearchResult result = results.get(id);
+            
+            // update order
+            sortedResults.remove(result);
+            result.calcLastParameterAdjustedTf(vectorModule);
+            sortedResults.add(result);
+            
+        }
+        
     }
     
     public void parseFiles(File[] files) throws FileNotFoundException {

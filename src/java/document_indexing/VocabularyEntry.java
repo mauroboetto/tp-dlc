@@ -7,13 +7,13 @@
 package document_indexing;
 
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.Serializable;
 
 /**
  *
  * @author mauro
  */
-class VocabularyEntry {
+class VocabularyEntry implements Serializable {
     private int quantity;
     private int maxTf;
     private long offset;
@@ -21,15 +21,15 @@ class VocabularyEntry {
     private String nextBlockWord;
     
     
-    VocabularyEntry(PostingEntry posting, long offset) {
+    VocabularyEntry(PostingEntries posting, long offset) {
         this.quantity = posting.getCount();
         this.maxTf = posting.getMaxTf();
-        this.postingBlockAmount = posting.getPostingBlockAmount();
+        this.postingBlockAmount = posting.getNeededBlocksAmount();
         this.offset = offset;
         this.nextBlockWord = null;
     }
     
-    public void setOffset(int offset) {
+    public void setOffset(long offset) {
         this.offset = offset;
     }
     
@@ -62,17 +62,17 @@ class VocabularyEntry {
     }
 
 
-    public PostingEntry getPosting(String postingFilename) {
+    public PostingEntries getPosting(String postingFilename) {
         try {
-            return new PostingEntry(postingFilename, offset, quantity, postingBlockAmount);
+            return new PostingEntries(postingFilename, offset, quantity, postingBlockAmount);
         } catch (IOException ex) {
             System.out.println("FIXME: " + ex.getMessage());
-            return new PostingEntry();
+            return new PostingEntries();
         }
     }
     
-    public PostingEntry updatePosting(String postingFilename, short[] documentsIds, int[] documentsTfs, int count) {
-        PostingEntry posting = getPosting(postingFilename);
+    public PostingEntries updatePosting(String postingFilename, short[] documentsIds, int[] documentsTfs, int count) {
+        PostingEntries posting = getPosting(postingFilename);
         
         posting.update(documentsIds, documentsTfs, count);
         this.quantity = posting.getCount();

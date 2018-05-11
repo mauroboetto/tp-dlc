@@ -8,8 +8,10 @@ package document_indexing;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,7 +27,7 @@ import parsers.WordCounter;
  *
  * @author mauro
  */
-public class VocabularyAndPostingManager {
+class VocabularyAndPostingManager {
     private final static Logger LOGGER = Logger.getLogger(VectorialIndexingManager.class.getName());
     
     public final static String DOCUMENTS_FILENAME = "documents_filenames.bin";
@@ -52,6 +54,7 @@ public class VocabularyAndPostingManager {
         
         loadVocabulary();
         loadFilenames();
+        
     }
     
     private void loadVocabulary() {
@@ -67,8 +70,7 @@ public class VocabularyAndPostingManager {
                 return;
             } catch (IOException | ClassNotFoundException ex) {
                 LOGGER.log(Level.SEVERE, "Vocabulary file, invalid format");
-
-            }    
+            }
         }
         
         vocabulary = new HashMap();
@@ -94,11 +96,34 @@ public class VocabularyAndPostingManager {
     }
     
     private void saveVocabulary() {
-        // TODO
+        LOGGER.log(Level.INFO, "Saving vocabulary...");
+        File f = new File(vocabularyFilename);
+        try {
+            f.createNewFile();
+            try (FileOutputStream out = new FileOutputStream(f)) {
+                ObjectOutputStream ofile = new ObjectOutputStream(out);
+                ofile.writeObject(vocabulary);
+                ofile.writeObject(lastPostingWord);
+                ofile.flush();
+            }
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, "IOException {0}", ex.getMessage());
+        }
     }
     
     private void saveFilenames() {
-        // TODO
+        LOGGER.log(Level.INFO, "Saving document filenames...");
+        File f = new File(documentIndexesFilename);
+        try {
+            f.createNewFile();
+            try (FileOutputStream out = new FileOutputStream(f)) {
+                ObjectOutputStream ofile = new ObjectOutputStream(out);
+                ofile.writeObject(filenames);
+                ofile.flush();
+            }
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, "IOException {0}", ex.getMessage());
+        }
     }
     
     public void parseFiles(File[] files) throws FileNotFoundException {
@@ -133,8 +158,9 @@ public class VocabularyAndPostingManager {
      */
     private void processMaps(Map<String, Integer>[] maps, 
             int count, int initialIndex) {
-        short[] documents = new short[count];
-        int[] tfs = new int[count];
+        System.out.println(initialIndex);
+        short[] documents = new short[PostingEntries.ENTRIES_PER_BLOCK];
+        int[] tfs = new int[PostingEntries.ENTRIES_PER_BLOCK];
         for (int i = 0; i < count; i++) {
             Iterator<Map.Entry<String, Integer>> keySetIterator = maps[i].entrySet().iterator();
             Map.Entry<String, Integer> entry;
@@ -150,7 +176,7 @@ public class VocabularyAndPostingManager {
                 for (int j = i + 1; j < count; j++) {
                     Integer tf = maps[j].remove(word);
                     if (tf != null) {
-                        documents[k] = (short) (initialIndex + i);
+                        documents[k] = (short) (initialIndex + j);
                         tfs[k] = tf;
                         k += 1;
                     }
@@ -158,10 +184,10 @@ public class VocabularyAndPostingManager {
             
                 VocabularyEntry vocabularyEntry = vocabulary.get(word);
                 if (vocabularyEntry != null) {
-                    PostingEntry posting = vocabularyEntry.updatePosting(postingFilename, documents, tfs, k);
+                    PostingEntries posting = vocabularyEntry.updatePosting(postingFilename, documents, tfs, k);
                     rearrangePostingBlocks(vocabularyEntry, posting);
                 } else {
-                    PostingEntry posting = new PostingEntry(documents, tfs, k);
+                    PostingEntries posting = new PostingEntries(documents, tfs, k);
                     long offset = savePosting(posting, -1);
                     if (lastPostingWord != null) {
                         vocabulary.get(lastPostingWord).setNextBlockWord(word);
@@ -179,19 +205,41 @@ public class VocabularyAndPostingManager {
      * @param vocabularyEntry: entrada del vocabulario a expandir
      * @param posting
      */
-    private void rearrangePostingBlocks(VocabularyEntry vocabularyEntry, PostingEntry posting) {
+    private void rearrangePostingBlocks(VocabularyEntry vocabularyEntry, PostingEntries posting) {
         String nextBlockWord = vocabularyEntry.getNextBlockWord();
-        int neededBlocks = posting.getPostingBlockAmount();
+        int neededBlocks = posting.getNeededBlocksAmount();
         int availableBlocks = vocabularyEntry.getPostingBlockAmount();
+        
+        if (nextBlockWord == null) {
+            // No hace falta mover nada
+            savePosting(posting, vocabularyEntry.getOffset());
+            vocabularyEntry.setPostingBlockAmount(Math.max(neededBlocks, availableBlocks));
+            return;
+        }
+        
+        long offset;
+        String followingNextBlockWord;
         do {
             VocabularyEntry nextBlockEntry = vocabulary.get(nextBlockWord);
-            String followingBlockWord = nextBlockEntry.getNextBlockWord();
-            nextBlockEntry.setNextBlockWord(null);
-            vocabularyEntry.setNextBlockWord(followingBlockWord);
-            savePosting(nextBlockEntry.getPosting(postingFilename), -1);
+            followingNextBlockWord = nextBlockEntry.getNextBlockWord();
+            if (followingNextBlockWord == null) {
+                // Es el penúltimo, guardar en el lugar y guardar el último al final
+                savePosting(posting, vocabularyEntry.getOffset());
+                vocabularyEntry.setPostingBlockAmount(neededBlocks);
+                offset = savePosting(nextBlockEntry.getPosting(postingFilename), -1);
+                nextBlockEntry.setOffset(offset);
+                return;
+            } 
             
+            nextBlockEntry.setNextBlockWord(null);
+            offset = savePosting(nextBlockEntry.getPosting(postingFilename), -1);
+            nextBlockEntry.setOffset(offset);
+            
+            availableBlocks += nextBlockEntry.getPostingBlockAmount();
+            nextBlockWord = followingNextBlockWord;
         } while (neededBlocks > availableBlocks);
         
+        vocabularyEntry.setNextBlockWord(followingNextBlockWord);
         vocabularyEntry.setPostingBlockAmount(availableBlocks);
         savePosting(posting, vocabularyEntry.getOffset());
     }
@@ -202,7 +250,7 @@ public class VocabularyAndPostingManager {
      * @param offset: Offset donde guardar. Si es menor a 0, guardar al final
      * @return offset donde se guardó
      */
-    private long savePosting(PostingEntry posting, long offset) {
+    private long savePosting(PostingEntries posting, long offset) {
         try (RandomAccessFile raf = new RandomAccessFile(postingFilename, "rw")) {
             if (offset < 0) {
                 offset = raf.length();
@@ -215,10 +263,12 @@ public class VocabularyAndPostingManager {
         return offset;
     }
     
-    public int[][] getDocumentsTfs(String word) {
-        
-        // FIXME
-        return new int[10][2];
+    public PostingEntries getDocumentsPosting(String word) {
+        VocabularyEntry entry = vocabulary.get(word);
+        if (entry == null) {
+            return null;
+        }
+        return entry.getPosting(postingFilename);
     }
     
     public int getMaxTf(String word) {
