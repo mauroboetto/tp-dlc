@@ -17,9 +17,9 @@ import java.io.IOException;
  */
 public class WordReader implements Iterable<String>, Closeable {
 
-    protected final static Pattern WORD_PATTERN = Pattern.compile("\\b\\p{L}+\\b");
-    protected final BufferedReader reader;
-    protected Matcher m;
+    private final static Pattern WORD_PATTERN = Pattern.compile("\\b\\p{L}+\\b");
+    private final BufferedReader reader;
+    private Matcher m;
     
     public WordReader(String filename) throws FileNotFoundException {
         reader = new BufferedReader(new FileReader(filename));
@@ -36,7 +36,7 @@ public class WordReader implements Iterable<String>, Closeable {
         return ret;
     }
     
-    protected boolean readLine() {
+    private boolean readLine() {
         try {
             String line = reader.readLine();
             if (line != null) {

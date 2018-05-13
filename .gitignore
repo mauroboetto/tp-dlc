@@ -3,5 +3,4 @@ build
 nbproject
 build.xml
 nbbuild.xml
-*.bin
-web/.fuse_hidden*
+resources

@@ -29,6 +29,24 @@ class VocabularyEntry implements Serializable {
         this.nextBlockWord = null;
     }
     
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("\nquantity: ");
+        sb.append(quantity);
+        sb.append("\nmaxTf: ");
+        sb.append(maxTf);
+        sb.append("\noffset: ");
+        sb.append(offset);
+        sb.append("\nblock amount: ");
+        sb.append(postingBlockAmount);
+        sb.append("\nnext bloc word: ");
+        sb.append(nextBlockWord);
+        sb.append('\n');
+        
+        
+        return sb.toString();
+    }
+    
     public void setOffset(long offset) {
         this.offset = offset;
     }
@@ -66,7 +84,6 @@ class VocabularyEntry implements Serializable {
         try {
             return new PostingEntries(postingFilename, offset, quantity, postingBlockAmount);
         } catch (IOException ex) {
-            System.out.println("FIXME: " + ex.getMessage());
             return new PostingEntries();
         }
     }

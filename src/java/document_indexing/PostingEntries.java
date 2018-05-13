@@ -15,8 +15,10 @@ import java.util.Iterator;
  * @author mauro
  */
 class PostingEntries implements Iterable<PostingEntries.PostingSingleEntry> {
-    public final static int ENTRIES_PER_BLOCK = 20;
-    public final static int BLOCK_SIZE = (4 + 2) * ENTRIES_PER_BLOCK;
+    private final static int INTEGER_SIZE = 4;
+    private final static int SHORT_SIZE = 2;
+    public final static int ENTRIES_PER_BLOCK = 60;
+    public final static int BLOCK_SIZE = (INTEGER_SIZE + SHORT_SIZE) * ENTRIES_PER_BLOCK;
     
     private short[] documentsIds;
     private int[] documentsTfs;
@@ -56,13 +58,16 @@ class PostingEntries implements Iterable<PostingEntries.PostingSingleEntry> {
             raf.read(buffer);
             
             int tfsIndex = 0;
-            int idsIndex = blockCount * 4 * ENTRIES_PER_BLOCK;
-            for (int i = 0; i < count; i++, tfsIndex += 4, idsIndex += 2) {
-                documentsTfs[i] = buffer[tfsIndex] | (buffer[tfsIndex + 1] << 8) 
-                            | (buffer[tfsIndex + 2] << 16) | (buffer[tfsIndex + 3] << 24);
+            int idsIndex = blockCount * INTEGER_SIZE * ENTRIES_PER_BLOCK;
+            for (int i = 0; i < count; i++, tfsIndex += INTEGER_SIZE, idsIndex += SHORT_SIZE) {
+                documentsTfs[i] = (buffer[tfsIndex] & 0xff) 
+                        | ((buffer[tfsIndex + 1]  << 8) & 0xff00)
+                        | ((buffer[tfsIndex + 2] << 16) & 0xff0000) 
+                        | ((buffer[tfsIndex + 3] << 24) & 0xff000000);
             
                 
-                documentsIds[i] = (short) (buffer[idsIndex] | (buffer[idsIndex + 1] << 8));
+                documentsIds[i] = (short) ((buffer[idsIndex] & 0xff)
+                        | ((buffer[idsIndex + 1] << 8) & 0xff00));
             }
         }
 
@@ -86,14 +91,13 @@ class PostingEntries implements Iterable<PostingEntries.PostingSingleEntry> {
         }
         System.arraycopy(documentsTfs, 0, this.documentsTfs, this.count, count);
         System.arraycopy(documentsIds, 0, this.documentsIds, this.count, count);
-        this.count = count;
+        this.count += count;
         sort();
     }
     
     
     private void sort() {
-        //FIXME:
-        //sort(0, count - 1);
+        sort(0, count - 1);
     }
     
     private void sort(int left, int right) {
@@ -104,10 +108,10 @@ class PostingEntries implements Iterable<PostingEntries.PostingSingleEntry> {
         int aux1;
         short aux2;
         while (i < j) {
-            while (documentsTfs[i] <= pivot && i < j) {
+            while (documentsTfs[i] >= pivot && i < j) {
                 i++;
             }
-            while (documentsTfs[j] > pivot) {
+            while (documentsTfs[j] < pivot) {
                 j--;
             }
             if (i < j) {
@@ -131,7 +135,6 @@ class PostingEntries implements Iterable<PostingEntries.PostingSingleEntry> {
             sort(j + 1, right);
         }
     }
-
     
     public int getCount() {
         return count;
@@ -146,22 +149,25 @@ class PostingEntries implements Iterable<PostingEntries.PostingSingleEntry> {
     }
     
     public byte[] toBytes() {
-        int blockCount = getNeededBlocksAmount();
+        return toBytes(getNeededBlocksAmount());
+    }
+    
+    public byte[] toBytes(int blockCount) {
         byte[] ret = new byte[blockCount * BLOCK_SIZE];
         
         int tfsIndex = 0;
-        int idsIndex = blockCount * 4 * ENTRIES_PER_BLOCK;
+        int idsIndex = blockCount * INTEGER_SIZE * ENTRIES_PER_BLOCK;
         for (int i = 0; i < count; i++) {
             int value = documentsTfs[i];
             ret[tfsIndex++] = (byte) (value & 0xff);
-            ret[tfsIndex++] = (byte) (value & 0xff00);
-            ret[tfsIndex++] = (byte) (value & 0xff0000);
-            ret[tfsIndex++] = (byte) (value & 0xff000000);
+            ret[tfsIndex++] = (byte) ((value >> 8) & 0xff);
+            ret[tfsIndex++] = (byte) ((value >> 16) & 0xff);
+            ret[tfsIndex++] = (byte) ((value >> 24) & 0xff);
         
             
             value = documentsIds[i];
             ret[idsIndex++] = (byte) (value & 0xff);
-            ret[idsIndex++] = (byte) (value & 0xff00);
+            ret[idsIndex++] = (byte) ((value >> 8) & 0xff);
         }
         return ret;
     }
@@ -183,7 +189,7 @@ class PostingEntries implements Iterable<PostingEntries.PostingSingleEntry> {
     }
     
     private class PostingEntriesIterator implements Iterator<PostingSingleEntry> {
-        private PostingSingleEntry entry;
+        private final PostingSingleEntry entry;
         private int index;
 
         

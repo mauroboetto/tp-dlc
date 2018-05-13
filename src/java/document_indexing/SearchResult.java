@@ -37,6 +37,10 @@ public class SearchResult implements Comparable {
             sb.append(par.tf);
             sb.append(",  tf ajustada = ");
             sb.append(par.adjustedTf);
+            sb.append(",  tf máxima = ");
+            sb.append(par.maxTf);
+            sb.append(",  contenida en = ");
+            sb.append(par.containedIn);
             sb.append('\n');
         }
         sb.append("Relevancia del documento: ");
@@ -45,8 +49,8 @@ public class SearchResult implements Comparable {
         return sb.toString();
     }
     
-    public void addParameterValues(String word, int frecuency, double tf) {
-        parameters.add(new ParameterValues(word, frecuency, tf));
+    public void addParameterValues(String word, int tf, double semiAdjustedTf, int maxTf, int containedIn) {
+        parameters.add(new ParameterValues(word, tf, semiAdjustedTf, maxTf, containedIn));
     }
     
     public void calcLastParameterAdjustedTf(double vectorModule) {
@@ -61,6 +65,9 @@ public class SearchResult implements Comparable {
         SearchResult other = (SearchResult) t;
         if (other.equals(this)) {
             return 0;
+        }
+        if (this.relevance == other.relevance) {
+            return this.filename.compareTo(other.filename);
         }
         return (this.relevance - other.relevance) > 0 ? -1: 1;
     }
@@ -85,11 +92,15 @@ public class SearchResult implements Comparable {
         private final String word;
         private final int tf;
         private final double semiAdjustedTf;
+        private final int maxTf;
+        private final int containedIn;
         private double adjustedTf;
         
-        ParameterValues(String word, int tf, double semiAdjustedTf) {
+        ParameterValues(String word, int tf, double semiAdjustedTf, int maxTf, int containedIn) {
             this.word = word;
             this.tf = tf;
+            this.maxTf = maxTf;
+            this.containedIn = containedIn;
             this.semiAdjustedTf = semiAdjustedTf;
         }
     }

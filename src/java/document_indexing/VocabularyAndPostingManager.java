@@ -42,15 +42,10 @@ class VocabularyAndPostingManager {
     private List<String> filenames;
     private String lastPostingWord;
     
-    public VocabularyAndPostingManager() {
-        this(DOCUMENTS_FILENAME, VOCABULARY_FILENAME, POSTING_FILENAME);
-    }
-    
-    public VocabularyAndPostingManager(String documentIndexesFilename, 
-            String vocabularyFilename, String postingFilename) {
-        this.vocabularyFilename = vocabularyFilename;
-        this.postingFilename = postingFilename;
-        this.documentIndexesFilename = documentIndexesFilename;
+    public VocabularyAndPostingManager(String resourcesDir) {
+        this.vocabularyFilename = resourcesDir + VOCABULARY_FILENAME;
+        this.postingFilename = resourcesDir + POSTING_FILENAME;
+        this.documentIndexesFilename = resourcesDir + DOCUMENTS_FILENAME;
         
         loadVocabulary();
         loadFilenames();
@@ -127,18 +122,18 @@ class VocabularyAndPostingManager {
     }
     
     public void parseFiles(File[] files) throws FileNotFoundException {
-        final int PROCESS_AMOUNT = 20;
+        final int PROCESS_AMOUNT = PostingEntries.ENTRIES_PER_BLOCK;
         int i, count;
         
         Map<String, Integer>[] maps = new Map[PROCESS_AMOUNT];
         WordCounter wc;
+        
         i = 0;
-
         while (i < files.length) {
             int initial_index = this.filenames.size();
             for (count = 0; count < PROCESS_AMOUNT && i < files.length; count++, i++) {
                 String fn = files[i].getName();
-                LOGGER.log(Level.INFO, "Parsing {0}", fn);
+                LOGGER.log(Level.INFO, "{0}/{1}) Parsing {2}", new Object[]{i + 1, files.length, fn});
                 wc = new WordCounter();
                 wc.loadFromFile(files[i].getAbsolutePath());
                 maps[count] = wc.getMap();
@@ -158,7 +153,6 @@ class VocabularyAndPostingManager {
      */
     private void processMaps(Map<String, Integer>[] maps, 
             int count, int initialIndex) {
-        System.out.println(initialIndex);
         short[] documents = new short[PostingEntries.ENTRIES_PER_BLOCK];
         int[] tfs = new int[PostingEntries.ENTRIES_PER_BLOCK];
         for (int i = 0; i < count; i++) {
@@ -188,7 +182,7 @@ class VocabularyAndPostingManager {
                     rearrangePostingBlocks(vocabularyEntry, posting);
                 } else {
                     PostingEntries posting = new PostingEntries(documents, tfs, k);
-                    long offset = savePosting(posting, -1);
+                    long offset = savePosting(posting);
                     if (lastPostingWord != null) {
                         vocabulary.get(lastPostingWord).setNextBlockWord(word);
                     }
@@ -212,55 +206,70 @@ class VocabularyAndPostingManager {
         
         if (nextBlockWord == null) {
             // No hace falta mover nada
-            savePosting(posting, vocabularyEntry.getOffset());
-            vocabularyEntry.setPostingBlockAmount(Math.max(neededBlocks, availableBlocks));
+            int blockAmount = Math.max(neededBlocks, availableBlocks);
+            savePosting(posting, vocabularyEntry.getOffset(), blockAmount);
+            vocabularyEntry.setPostingBlockAmount(blockAmount);
             return;
         }
         
         long offset;
-        String followingNextBlockWord;
-        do {
+        while (neededBlocks > availableBlocks) {
             VocabularyEntry nextBlockEntry = vocabulary.get(nextBlockWord);
-            followingNextBlockWord = nextBlockEntry.getNextBlockWord();
-            if (followingNextBlockWord == null) {
+            String followingBlockWord = nextBlockEntry.getNextBlockWord();
+            if (followingBlockWord == null) {
                 // Es el penúltimo, guardar en el lugar y guardar el último al final
-                savePosting(posting, vocabularyEntry.getOffset());
+                savePosting(posting, vocabularyEntry.getOffset(), neededBlocks);
                 vocabularyEntry.setPostingBlockAmount(neededBlocks);
-                offset = savePosting(nextBlockEntry.getPosting(postingFilename), -1);
+                offset = savePosting(nextBlockEntry.getPosting(postingFilename));
                 nextBlockEntry.setOffset(offset);
                 return;
             } 
             
-            nextBlockEntry.setNextBlockWord(null);
-            offset = savePosting(nextBlockEntry.getPosting(postingFilename), -1);
-            nextBlockEntry.setOffset(offset);
-            
             availableBlocks += nextBlockEntry.getPostingBlockAmount();
-            nextBlockWord = followingNextBlockWord;
-        } while (neededBlocks > availableBlocks);
+            
+            nextBlockEntry.setNextBlockWord(null);
+            offset = savePosting(nextBlockEntry.getPosting(postingFilename));
+            nextBlockEntry.setOffset(offset);
+            vocabulary.get(lastPostingWord).setNextBlockWord(nextBlockWord);
+            lastPostingWord = nextBlockWord;
+            nextBlockWord = followingBlockWord;
+        }
         
-        vocabularyEntry.setNextBlockWord(followingNextBlockWord);
+        vocabularyEntry.setNextBlockWord(nextBlockWord);
         vocabularyEntry.setPostingBlockAmount(availableBlocks);
-        savePosting(posting, vocabularyEntry.getOffset());
+        savePosting(posting, vocabularyEntry.getOffset(), availableBlocks);
     }
     
     /**
      * 
      * @param posting: Objeto a guardar
      * @param offset: Offset donde guardar. Si es menor a 0, guardar al final
+     * @param blockCount: Cantidad de bloques disponibles
      * @return offset donde se guardó
      */
-    private long savePosting(PostingEntries posting, long offset) {
+    private long savePosting(PostingEntries posting, long offset, int blockCount) {
         try (RandomAccessFile raf = new RandomAccessFile(postingFilename, "rw")) {
             if (offset < 0) {
                 offset = raf.length();
             }
             raf.seek(offset);
-            raf.write(posting.toBytes());
+            
+            byte[] data;
+            if (blockCount < 0) {
+                data = posting.toBytes();
+            } else {
+                data = posting.toBytes(blockCount);
+            }
+            raf.write(data);
+            
         } catch (IOException ex) {
             LOGGER.log(Level.SEVERE, "IOException: {0}", ex.getMessage());
         }
         return offset;
+    }
+    
+    private long savePosting(PostingEntries posting) {
+        return savePosting(posting, -1, -1);
     }
     
     public PostingEntries getDocumentsPosting(String word) {
@@ -280,7 +289,7 @@ class VocabularyAndPostingManager {
     }
     
     public int getDocumentCount() {
-        return vocabulary.size();
+        return filenames.size();
     }
     
     public int getDocumentsContaining(String word) {
@@ -293,5 +302,9 @@ class VocabularyAndPostingManager {
     
     public String getDocumentName(int index) {
         return filenames.get(index);
+    }
+    
+    public String showVocabulary() {
+        return vocabulary.toString();
     }
 }

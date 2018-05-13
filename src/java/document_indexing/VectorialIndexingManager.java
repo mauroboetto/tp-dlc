@@ -26,14 +26,9 @@ public class VectorialIndexingManager {
     private SortedSet<SearchResult> sortedResults;
     private Set<Short> currentWordDocuments;
     
-    public VectorialIndexingManager() {
-        this.vocabularyPostingManager = new VocabularyAndPostingManager();
-    }
-    
-    public VectorialIndexingManager(String documentIndexesFilename, 
-            String vocabularyFilename, String postingFilename) {
+    public VectorialIndexingManager(String resourcesDir) {
         this.vocabularyPostingManager = new VocabularyAndPostingManager(
-                documentIndexesFilename, vocabularyFilename, postingFilename);
+                resourcesDir);
     }
     
     
@@ -44,7 +39,7 @@ public class VectorialIndexingManager {
         
         
         for (String word: words) {
-            processWordTfs(word);
+            processWordTfs(word.toLowerCase());
         }
         
         Iterable<SearchResult> ret = sortedResults;
@@ -61,10 +56,18 @@ public class VectorialIndexingManager {
             return;
         }
         
-        //int tfMax = vocabularyPostingManager.getMaxTf(word);
+        int maxTf = vocabularyPostingManager.getMaxTf(word);
         int totalDocuments = vocabularyPostingManager.getDocumentCount();
         int containedIn = vocabularyPostingManager.getDocumentsContaining(word);
         double logFactor = Math.log(((double) totalDocuments) / containedIn);
+        
+        boolean useFakeVectorModule;
+        if (useFakeVectorModule = logFactor == 0) {
+            // Es mayor que cualquier otra cantidad posible, pero más chico que el total
+            double fakeContainedIn = totalDocuments - 0.0001;
+            logFactor = Math.log(totalDocuments / fakeContainedIn);
+            
+        }
         
         
         double vectorModule = 0;
@@ -72,7 +75,10 @@ public class VectorialIndexingManager {
             short id = entry.documentId;
             int tf = entry.documentTf;
             double semiAdjustedTf = tf * logFactor;
-            vectorModule += Math.pow(semiAdjustedTf, 2);
+            
+            if (!useFakeVectorModule) {
+                vectorModule += Math.pow(semiAdjustedTf, 2);
+            }
             
             if (!currentWordDocuments.contains(id)) {
                 currentWordDocuments.add(id);
@@ -83,18 +89,23 @@ public class VectorialIndexingManager {
                 result = new SearchResult(vocabularyPostingManager.getDocumentName(id));
                 results.put(id, result);
             }
-            result.addParameterValues(word, tf, semiAdjustedTf);
+            result.addParameterValues(word, tf, semiAdjustedTf, maxTf, containedIn);
             
         }
         
-        vectorModule = Math.sqrt(vectorModule);
+        if (!useFakeVectorModule) {
+            vectorModule = Math.sqrt(vectorModule);
+        } else {
+            vectorModule = 1;
+        }
+        
         Iterator<Short> it = currentWordDocuments.iterator();
         while (it.hasNext()) {
             short id = it.next();
             it.remove();
             SearchResult result = results.get(id);
             
-            // update order
+            // actualizar el órden
             sortedResults.remove(result);
             result.calcLastParameterAdjustedTf(vectorModule);
             sortedResults.add(result);
@@ -105,5 +116,9 @@ public class VectorialIndexingManager {
     
     public void parseFiles(File[] files) throws FileNotFoundException {
         vocabularyPostingManager.parseFiles(files);
+    }
+    
+    public String showVocabulary() {
+        return vocabularyPostingManager.showVocabulary();
     }
 }
