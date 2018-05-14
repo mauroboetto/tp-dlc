@@ -1,7 +1,7 @@
 
 package parsers;
 
-import utils.TSB_OAHashtable;
+import java.util.HashMap;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -20,7 +20,7 @@ public class WordCounter {
     private Map<String, Integer> map;
 
     public WordCounter() {
-        map = new TSB_OAHashtable<>(100001);
+        map = new HashMap(100001);
     }
     
     public WordCounter(Map<String, Integer> m) {
@@ -72,8 +72,7 @@ public class WordCounter {
     }
     
     public void serialize(String filename) throws FileNotFoundException, IOException{
-        try (FileOutputStream out = new FileOutputStream(new File(filename)))
-        {
+        try (FileOutputStream out = new FileOutputStream(new File(filename))) {
             ObjectOutputStream ofile = new ObjectOutputStream(out);
             ofile.writeObject(map);
             ofile.flush();
@@ -84,8 +83,7 @@ public class WordCounter {
         try (
                 FileInputStream in = new FileInputStream(new File(filename));
                 ObjectInputStream ifile = new ObjectInputStream(in)
-            ) 
-        {    
+            ) {    
             map = (Map) ifile.readObject();
         }
     }

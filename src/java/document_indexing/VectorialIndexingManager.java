@@ -5,88 +5,120 @@
  */
 package document_indexing;
 import java.io.File;
-import java.io.IOException;
 import java.io.FileNotFoundException;
-import java.io.FileInputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
-import utils.TSB_OAHashtable;
-import parsers.WordCounter;
+import java.util.Iterator;
+import java.util.HashSet;
+import java.util.TreeSet;
+import java.util.SortedSet;
+import java.util.Set;
 
-import java.util.logging.Logger;
 
 /**
  *
  * @author mauro
  */
 public class VectorialIndexingManager {
-    private final static Logger LOGGER = Logger.getLogger(VectorialIndexingManager.class.getName());
-    
-    public final static String DOCUMENTS_FILENAME = "document_indexes.bin";
-    public final static String VOCABULARY_FILENAME = "vocabulary.bin";
-    public final static String POSTING_FILENAME = "posting.bin";
-    
-    private final String documentIndexesFilename;
     private final VocabularyAndPostingManager vocabularyPostingManager;
-    private Map<Integer, Double> searchTotals;
-    private Map<Integer, Double> wordTfs;
-    private double acumTfs;
     
-    public VectorialIndexingManager() {
-        this(DOCUMENTS_FILENAME, VOCABULARY_FILENAME, POSTING_FILENAME);
-    }
+    private Map<Short, SearchResult> results;
+    private SortedSet<SearchResult> sortedResults;
+    private Set<Short> currentWordDocuments;
     
-    public VectorialIndexingManager(String documentIndexesFilename, 
-            String vocabularyFilename, String postingFilename) {
-        this.vocabularyPostingManager = new VocabularyAndPostingManager(vocabularyFilename, postingFilename);
-        this.documentIndexesFilename = documentIndexesFilename;
-        
+    public VectorialIndexingManager(String resourcesDir) {
+        this.vocabularyPostingManager = new VocabularyAndPostingManager(
+                resourcesDir);
     }
     
     
-    public Iterable<SearchResult> getResults(Iterable<String> words) {
-        searchTotals = new TSB_OAHashtable();
+    public Iterable<SearchResult> getResults(Set<String> words) {
+        results = new HashMap();
+        currentWordDocuments = new HashSet();
+        sortedResults = new TreeSet();
         
-        ArrayList<SearchResult> ret = new ArrayList();
-        ret.add(new SearchResult("Palabras"));
+        
         for (String word: words) {
-            processWordTfs(word);
-            updateSearchTotals();
+            processWordTfs(word.toLowerCase());
         }
         
-        for (Map.Entry<Integer, Double> entry: searchTotals.entrySet()) {
-            // TODO procesar entradas y crear el resultado
-            ret.add(new SearchResult("arreglame"));
-        }
-            
+        Iterable<SearchResult> ret = sortedResults;
         
-        
-        
-        wordTfs = null;
-        searchTotals = null;
+        results = null;
+        currentWordDocuments = null;
+        sortedResults = null;
         return ret;
     }
     
     private void processWordTfs(String word) {
-        // Matriz de [ID_Documento][TF]
-        int tfsXDocument[][] = vocabularyPostingManager.getDocumentsTfs(word);
+        PostingEntries posting = vocabularyPostingManager.getDocumentsPosting(word);
+        if (posting == null) {
+            return;
+        }
         
-        int tfMax = vocabularyPostingManager.getMaxTf(word);
+        int maxTf = vocabularyPostingManager.getMaxTf(word);
         int totalDocuments = vocabularyPostingManager.getDocumentCount();
         int containedIn = vocabularyPostingManager.getDocumentsContaining(word);
+        double logFactor = Math.log(((double) totalDocuments) / containedIn);
         
-        acumTfs = 0;
-        wordTfs = new TSB_OAHashtable();
+        boolean useFakeVectorModule;
+        if (useFakeVectorModule = logFactor == 0) {
+            // Es mayor que cualquier otra cantidad posible, pero más chico que el total
+            double fakeContainedIn = totalDocuments - 0.0001;
+            logFactor = Math.log(totalDocuments / fakeContainedIn);
+            
+        }
         
         
-        // TODO: procesa los valores de una palabra
+        double vectorModule = 0;
+        for (PostingEntries.PostingSingleEntry entry: posting) {
+            short id = entry.documentId;
+            int tf = entry.documentTf;
+            double semiAdjustedTf = tf * logFactor;
+            
+            if (!useFakeVectorModule) {
+                vectorModule += Math.pow(semiAdjustedTf, 2);
+            }
+            
+            if (!currentWordDocuments.contains(id)) {
+                currentWordDocuments.add(id);
+            }
+            
+            SearchResult result = results.get(id);
+            if (result == null) {
+                result = new SearchResult(vocabularyPostingManager.getDocumentName(id));
+                results.put(id, result);
+            }
+            result.addParameterValues(word, tf, semiAdjustedTf, maxTf, containedIn);
+            
+        }
+        
+        if (!useFakeVectorModule) {
+            vectorModule = Math.sqrt(vectorModule);
+        } else {
+            vectorModule = 1;
+        }
+        
+        Iterator<Short> it = currentWordDocuments.iterator();
+        while (it.hasNext()) {
+            short id = it.next();
+            it.remove();
+            SearchResult result = results.get(id);
+            
+            // actualizar el órden
+            sortedResults.remove(result);
+            result.calcLastParameterAdjustedTf(vectorModule);
+            sortedResults.add(result);
+            
+        }
+        
     }
     
-    private void updateSearchTotals() {
-        // TODO
-        // Actualiza searchTotals con los valores de la ultima palabra
+    public void parseFiles(File[] files) throws FileNotFoundException {
+        vocabularyPostingManager.parseFiles(files);
     }
     
+    public String showVocabulary() {
+        return vocabularyPostingManager.showVocabulary();
+    }
 }
